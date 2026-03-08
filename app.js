@@ -408,224 +408,294 @@ function bindInputFilters() {
 /***********************
  * ✅ SweetAlert QR — HTML (img only: no distortion)
  ***********************/
-function buildQrPopupHtmlV2({
+function buildQrPopupHtmlV3({
   qrDataUrl, autoId, dc, dcName, fullName, gender, companyResolved, phone, timestampClient
 }) {
   return `
 <style>
-  #qrWrap, #qrWrap *{ box-sizing:border-box; }
-  #qrWrap{
+  #mqr, #mqr *{ box-sizing:border-box; }
+
+  #mqr{
     font-family:'Sarabun',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
     color:#0f172a;
+    width:100%;
+    max-width:100%;
+    margin:0 auto;
   }
 
-  :root{
-    --card1:#0b1020;
-    --card2:#070a14;
-    --muted:rgba(226,232,240,.72);
-    --accent1:#FF6B6B;
-    --accent2:#F85B1A;
-    --radius:18px;
-    --shadow:0 24px 70px rgba(0,0,0,.45);
-  }
-
-  .q2{ width:100%; max-width:520px; margin:0 auto; }
-  .q2Card{
-    border-radius:var(--radius);
+  .mqr-card{
+    width:100%;
+    max-width:420px;
+    margin:0 auto;
+    background:#ffffff;
+    border-radius:24px;
     overflow:hidden;
-    background: radial-gradient(1200px 500px at 20% -10%, rgba(255,107,107,.35), transparent 55%),
-                radial-gradient(900px 450px at 90% 10%, rgba(248,91,26,.28), transparent 60%),
-                linear-gradient(180deg, var(--card1), var(--card2));
-    box-shadow:var(--shadow);
-    border:1px solid rgba(255,255,255,.08);
+    box-shadow:0 16px 50px rgba(15,23,42,.16);
+    border:1px solid rgba(15,23,42,.08);
   }
 
-  .q2Top{
-    padding:14px 16px 12px;
-    display:flex;
-    align-items:flex-start;
-    justify-content:space-between;
-    gap:12px;
+  .mqr-head{
+    padding:18px 18px 10px;
+    text-align:center;
+    background:linear-gradient(180deg,#ffffff 0%, #f8fafc 100%);
   }
-  .q2Title{ min-width:0; display:flex; flex-direction:column; gap:6px; }
-  .q2Title h2{
-    margin:0;
-    font-size:15px;
-    font-weight:900;
-    color:#fff;
-    line-height:1.2;
-    letter-spacing:.2px;
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-  }
-  .q2Title p{ margin:0; font-size:12px; color:var(--muted); line-height:1.35; }
 
-  .q2Badge{
-    flex:0 0 auto;
-    padding:8px 10px;
+  .mqr-badge{
+    display:inline-block;
+    margin-bottom:10px;
+    padding:6px 12px;
     border-radius:999px;
     font-size:11px;
+    font-weight:800;
+    color:#5b21b6;
+    background:#f3e8ff;
+  }
+
+  .mqr-title{
+    margin:0;
+    font-size:22px;
+    line-height:1.2;
     font-weight:900;
-    color:#fff;
-    border:1px solid rgba(255,255,255,.14);
-    background: linear-gradient(135deg, rgba(255,107,107,.22), rgba(248,91,26,.20));
-    white-space:nowrap;
+    color:#111827;
   }
 
-  .q2Body{ padding:0 16px 14px; display:grid; gap:12px; }
-
-  .q2QrShell{
-    border-radius:18px;
-    border:1px solid rgba(255,255,255,.10);
-    background: rgba(255,255,255,.04);
-    padding:12px;
-    display:grid;
-    gap:10px;
+  .mqr-sub{
+    margin:8px 0 0;
+    font-size:13px;
+    line-height:1.5;
+    color:#64748b;
   }
 
-  .q2QrBox{
-    width:min(72vw, 310px);
+  .mqr-body{
+    padding:14px 18px 18px;
+  }
+
+  .mqr-qr-wrap{
+    background:#f8fafc;
+    border:1px solid #e2e8f0;
+    border-radius:22px;
+    padding:16px;
+    text-align:center;
+  }
+
+  .mqr-qr-box{
+    width:min(72vw, 280px);
     margin:0 auto;
     background:#fff;
-    border-radius:16px;
-    padding:12px;
-    border:1px solid rgba(15,23,42,.10);
+    border-radius:20px;
+    padding:14px;
+    border:1px solid #e5e7eb;
+    box-shadow:0 8px 24px rgba(15,23,42,.06);
   }
-  .q2QrFrame{
+
+  .mqr-qr-box img{
+    display:block;
     width:100%;
     aspect-ratio:1/1;
-    display:grid;
-    place-items:center;
-  }
-  .q2QrFrame img{
-    width:100% !important;
-    height:100% !important;
-    object-fit:contain !important;
-    image-rendering: pixelated; /* ช่วยคมบนบางเครื่อง */
+    object-fit:contain;
+    image-rendering:pixelated;
   }
 
-  .q2IdBar{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:10px;
-    padding:10px 12px;
-    border-radius:14px;
-    background: rgba(0,0,0,.35);
-    border:1px solid rgba(255,255,255,.10);
-  }
-  .q2IdLabel{ font-size:11px; color:var(--muted); margin-bottom:3px; }
-  .q2IdCode{
-    font-size:13px;
-    font-weight:900;
-    color:#fff;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    white-space:nowrap;
-    letter-spacing:.2px;
+  .mqr-id{
+    margin-top:14px;
+    padding:12px 14px;
+    border-radius:16px;
+    background:#ffffff;
+    border:1px dashed #cbd5e1;
   }
 
-  .q2BtnMini{
-    border:none;
-    cursor:pointer;
-    padding:9px 10px;
-    border-radius:12px;
-    font-weight:900;
+  .mqr-id-label{
     font-size:12px;
-    color:#fff;
-    background: rgba(255,255,255,.12);
-    border:1px solid rgba(255,255,255,.14);
-    white-space:nowrap;
+    color:#64748b;
+    margin-bottom:4px;
+    font-weight:700;
   }
 
-  .q2Grid{ display:grid; gap:8px; }
-  .q2Row{
+  .mqr-id-code{
+    font-size:18px;
+    line-height:1.25;
+    font-weight:900;
+    color:#111827;
+    word-break:break-word;
+    letter-spacing:.3px;
+  }
+
+  .mqr-note{
+    margin-top:12px;
+    text-align:center;
+    font-size:13px;
+    line-height:1.5;
+    color:#475569;
+  }
+
+  .mqr-mini{
+    margin-top:14px;
     display:grid;
-    grid-template-columns: 88px 1fr;
-    gap:10px;
+    gap:8px;
+  }
+
+  .mqr-row{
+    display:flex;
+    gap:8px;
+    align-items:flex-start;
     padding:10px 12px;
     border-radius:14px;
-    background: rgba(255,255,255,.04);
-    border:1px solid rgba(255,255,255,.08);
+    background:#f8fafc;
+    border:1px solid #e2e8f0;
   }
-  .q2K{ font-size:12px; font-weight:900; color:rgba(226,232,240,.85); white-space:nowrap; }
-  .q2V{ font-size:13px; color:#fff; overflow-wrap:anywhere; word-break:break-word; line-height:1.35; }
 
-  .q2Actions{ display:grid; gap:10px; margin-top:2px; }
-  .q2Btn{
+  .mqr-k{
+    min-width:70px;
+    font-size:12px;
+    font-weight:800;
+    color:#475569;
+  }
+
+  .mqr-v{
+    flex:1;
+    font-size:13px;
+    line-height:1.45;
+    color:#0f172a;
+    word-break:break-word;
+  }
+
+  .mqr-actions{
+    margin-top:16px;
+    display:grid;
+    gap:10px;
+  }
+
+  .mqr-btn{
     width:100%;
+    min-height:48px;
     border:none;
-    cursor:pointer;
-    padding:12px 12px;
-    border-radius:14px;
+    border-radius:16px;
+    font-size:15px;
     font-weight:900;
-    font-size:14px;
+    cursor:pointer;
   }
-  .q2BtnPrimary{
+
+  .mqr-btn-primary{
+    background:linear-gradient(135deg,#7c3aed,#5b21b6);
     color:#fff;
-    background: linear-gradient(135deg, var(--accent2), var(--accent1));
-  }
-  .q2BtnGhost{
-    color:#fff;
-    background: rgba(255,255,255,.08);
-    border:1px solid rgba(255,255,255,.12);
+    box-shadow:0 10px 24px rgba(91,33,182,.25);
   }
 
-  .q2Hint{ text-align:center; font-size:12px; color:var(--muted); line-height:1.4; margin-top:2px; }
+  .mqr-btn-secondary{
+    background:#ffffff;
+    color:#111827;
+    border:1px solid #d1d5db;
+  }
 
-  .swal2-popup{ padding:0 !important; background:transparent !important; box-shadow:none !important; }
-  .swal2-html-container{ margin:0 !important; padding:0 !important; }
-  .swal2-close{ color:#fff !important; }
+  .mqr-btn-ghost{
+    background:#f8fafc;
+    color:#334155;
+    border:1px solid #e2e8f0;
+  }
 
-  @media (max-width:360px){
-    .q2Row{ grid-template-columns: 78px 1fr; }
-    .q2V{ font-size:12px; }
+  .swal2-popup{
+    padding:0 !important;
+    border-radius:26px !important;
+    overflow:hidden !important;
+  }
+
+  .swal2-html-container{
+    margin:0 !important;
+    padding:0 !important;
+  }
+
+  .swal2-close{
+    color:#64748b !important;
+    font-size:28px !important;
+  }
+
+  @media (max-width:480px){
+    .mqr-card{
+      max-width:100%;
+      border-radius:22px;
+    }
+
+    .mqr-head{
+      padding:16px 14px 10px;
+    }
+
+    .mqr-title{
+      font-size:20px;
+    }
+
+    .mqr-sub{
+      font-size:12px;
+    }
+
+    .mqr-body{
+      padding:12px 14px 16px;
+    }
+
+    .mqr-qr-box{
+      width:min(78vw, 260px);
+      padding:12px;
+      border-radius:18px;
+    }
+
+    .mqr-id-code{
+      font-size:16px;
+    }
+
+    .mqr-k{
+      min-width:62px;
+    }
+
+    .mqr-v{
+      font-size:12.5px;
+    }
   }
 </style>
 
-<div class="q2" id="qrWrap">
-  <div class="q2Card" id="qrCard">
-    <div class="q2Top">
-      <div class="q2Title">
-        <h2>QR สำหรับสแกนออก</h2>
-        <p>กรุณาเก็บไว้ให้เจ้าหน้าที่สแกนตอนออกจากพื้นที่</p>
-      </div>
-      <div class="q2Badge">SECURITY</div>
+<div id="mqr">
+  <div class="mqr-card">
+    <div class="mqr-head">
+      <div class="mqr-badge">VISITOR PASS</div>
+      <h2 class="mqr-title">QR สำหรับสแกนออก</h2>
+      <p class="mqr-sub">กรุณาแสดง QR นี้ต่อเจ้าหน้าที่เมื่อออกจากพื้นที่</p>
     </div>
 
-    <div class="q2Body">
-      <div class="q2QrShell">
-        <div class="q2QrBox">
-          <div class="q2QrFrame">
-            <img src="${escapeHtml(qrDataUrl)}" alt="QR Code">
-          </div>
+    <div class="mqr-body">
+      <div class="mqr-qr-wrap">
+        <div class="mqr-qr-box">
+          <img src="${escapeHtml(qrDataUrl)}" alt="QR Code">
         </div>
 
-        <div class="q2IdBar">
-          <div>
-            <div class="q2IdLabel">รหัสพื้นที่</div>
-            <div class="q2IdCode" id="idCode">${escapeHtml(autoId)}</div>
-          </div>
-          <button type="button" class="q2BtnMini" id="copy-id">คัดลอก</button>
+        <div class="mqr-id">
+          <div class="mqr-id-label">รหัสลงทะเบียน</div>
+          <div class="mqr-id-code" id="idCode">${escapeHtml(autoId)}</div>
+        </div>
+
+        <div class="mqr-note">
+          แนะนำให้บันทึกภาพหน้าจอนี้ไว้<br>
+          เพื่อความสะดวกในการสแกนตอนออก
         </div>
       </div>
 
-      <div class="q2Grid">
-        <div class="q2Row"><div class="q2K">DC</div><div class="q2V">${escapeHtml(dc)} - ${escapeHtml(dcName)}</div></div>
-        <div class="q2Row"><div class="q2K">ชื่อ</div><div class="q2V">${escapeHtml(fullName)}</div></div>
-        <div class="q2Row"><div class="q2K">เพศ</div><div class="q2V">${escapeHtml(gender)}</div></div>
-        <div class="q2Row"><div class="q2K">บริษัท</div><div class="q2V">${escapeHtml(companyResolved)}</div></div>
-        <div class="q2Row"><div class="q2K">โทร</div><div class="q2V">${escapeHtml(phone)}</div></div>
-        <div class="q2Row"><div class="q2K">เวลา</div><div class="q2V">${escapeHtml(timestampClient)}</div></div>
+      <div class="mqr-mini">
+        <div class="mqr-row">
+          <div class="mqr-k">DC</div>
+          <div class="mqr-v">${escapeHtml(dc)} - ${escapeHtml(dcName)}</div>
+        </div>
+        <div class="mqr-row">
+          <div class="mqr-k">ชื่อ</div>
+          <div class="mqr-v">${escapeHtml(fullName)}</div>
+        </div>
+        <div class="mqr-row">
+          <div class="mqr-k">เวลา</div>
+          <div class="mqr-v">${escapeHtml(timestampClient)}</div>
+        </div>
       </div>
 
-      <div class="q2Actions">
-        <button type="button" class="q2Btn q2BtnPrimary" id="download-btn">ดาวน์โหลด QR (คมชัด)</button>
-        <button type="button" class="q2Btn q2BtnGhost" id="close-btn">ปิดหน้าต่าง</button>
+      <div class="mqr-actions">
+        <button type="button" class="mqr-btn mqr-btn-primary" id="download-btn">ดาวน์โหลด QR</button>
+        <button type="button" class="mqr-btn mqr-btn-secondary" id="copy-id">คัดลอกรหัส</button>
+        <button type="button" class="mqr-btn mqr-btn-ghost" id="close-btn">ปิด</button>
       </div>
-
-      <div class="q2Hint">แนะนำ: เพิ่มความสว่างหน้าจอเพื่อสแกนได้เร็วขึ้น</div>
     </div>
   </div>
 </div>
@@ -683,39 +753,48 @@ function bindSubmit() {
       const qrDataUrl = await makeQrDataUrl(autoId);
 
       // ✅ popup html
-      const html = buildQrPopupHtmlV2({ ...payload, qrDataUrl });
+      const html = buildQrPopupHtmlV3({ ...payload, qrDataUrl });
 
-      Swal.fire({
-        title: '',
-        html,
-        showConfirmButton: false,
-        showCloseButton: true,
-        allowOutsideClick: true,
-        width: 'clamp(320px, 92vw, 560px)',
-        padding: '0px',
-        backdrop: true,
-        didOpen: () => {
-          document.getElementById('copy-id')?.addEventListener('click', async () => {
-            try {
-              await navigator.clipboard.writeText(autoId);
-              Swal.fire({ icon:'success', title:'คัดลอกแล้ว', timer:900, showConfirmButton:false });
-            } catch {
-              Swal.fire({ icon:'info', title:'คัดลอกไม่สำเร็จ', text:'ลองคัดลอกจากข้อความรหัสพื้นที่' });
-            }
-          });
+     Swal.fire({
+  title: '',
+  html,
+  showConfirmButton: false,
+  showCloseButton: true,
+  allowOutsideClick: true,
+  width: 'min(94vw, 430px)',
+  padding: '0',
+  backdrop: true,
+  didOpen: () => {
+    document.getElementById('copy-id')?.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(autoId);
+        Swal.fire({
+          icon:'success',
+          title:'คัดลอกแล้ว',
+          timer:900,
+          showConfirmButton:false
+        });
+      } catch {
+        Swal.fire({
+          icon:'info',
+          title:'คัดลอกไม่สำเร็จ',
+          text:'ลองคัดลอกจากรหัสที่แสดง'
+        });
+      }
+    });
 
-          document.getElementById('download-btn')?.addEventListener('click', () => {
-            downloadDataUrl(qrDataUrl, `${CFG.DOWNLOAD_PREFIX}_${autoId}_QR.png`);
-          });
+    document.getElementById('download-btn')?.addEventListener('click', () => {
+      downloadDataUrl(qrDataUrl, `${CFG.DOWNLOAD_PREFIX}_${autoId}_QR.png`);
+    });
 
-          document.getElementById('close-btn')?.addEventListener('click', () => Swal.close());
-        }
-      }).then(() => {
-        $('#registration-form')[0].reset();
-        $('#companyOtherWrap').hide();
-        document.getElementById('registration-form').style.display = 'none';
-        showPrivacyMessage();
-      });
+    document.getElementById('close-btn')?.addEventListener('click', () => Swal.close());
+  }
+}).then(() => {
+  $('#registration-form')[0].reset();
+  $('#companyOtherWrap').hide();
+  document.getElementById('registration-form').style.display = 'none';
+  showPrivacyMessage();
+});
 
       // ✅ save to backend
       await api('saveData', payload);
@@ -757,5 +836,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   })();
 });
+
 
 
