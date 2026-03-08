@@ -4,12 +4,16 @@
  * ✅ JSONP เรียก Google Apps Script Web App (ไม่ติด CORS)
  * ✅ Mobile-first SweetAlert QR
  * ✅ บันทึกข้อมูลสำเร็จก่อน แล้วค่อยแสดง QR
+ * ✅ ดาวน์โหลดเป็น "ภาพทั้งการ์ด" ตามที่แสดงใน SweetAlert
  * ✅ หลังปิด QR ให้เด้ง privacy ซ้ำทุกครั้ง
+ * ✅ เอาปุ่มคัดลอกรหัสออก
+ * ✅ เอาปุ่มปิดออกจากด้านล่าง
  *
  * Requires in index.html:
  * - jQuery
  * - SweetAlert2
  * - qrcodejs
+ * - html2canvas
  *************************************************************/
 
 /***********************
@@ -21,12 +25,7 @@ const CFG = {
   ORIGIN: window.location.origin,
   JSONP_TIMEOUT_MS: 15000,
 
-  // ถ้า true = 1 session ขึ้น privacy ครั้งเดียว
-  // แต่ตามความต้องการล่าสุดของคุณ "หลังปิด QR ควรเด้ง privacy ซ้ำทุกครั้ง"
-  // ดังนั้นค่านี้ควรเป็น false
   PRIVACY_ONCE_PER_SESSION: false,
-
-  // preload รูปก่อนเปิด popup
   PRIVACY_PRELOAD_TIMEOUT_MS: 1200,
 
   DOWNLOAD_PREFIX: 'visitor',
@@ -66,14 +65,40 @@ function createToast() {
     toast: true,
     position: 'top',
     showConfirmButton: false,
-    timer: 1200,
+    timer: 1400,
     timerProgressBar: true
   });
 }
 
+function safeFileName(name) {
+  return String(name || 'download')
+    .replace(/[\\/:*?"<>|]+/g, '_')
+    .replace(/\s+/g, '_')
+    .slice(0, 120);
+}
+
+/***********************
+ * ดาวน์โหลด "ทั้งการ์ด" ตามที่เห็นใน SweetAlert
+ ***********************/
+async function downloadElementAsPng(element, filename) {
+  if (!element) throw new Error('ไม่พบ element สำหรับดาวน์โหลด');
+  if (typeof html2canvas !== 'function') {
+    throw new Error('ไม่พบไลบรารี html2canvas');
+  }
+
+  const canvas = await html2canvas(element, {
+    backgroundColor: '#ffffff',
+    scale: Math.max(2, window.devicePixelRatio || 1),
+    useCORS: true,
+    logging: false
+  });
+
+  const dataUrl = canvas.toDataURL('image/png');
+  downloadDataUrl(dataUrl, filename);
+}
+
 /***********************
  * JSONP Helper (No CORS)
- * - GAS ต้องรองรับ callback ที่ doGet
  ***********************/
 function jsonpRequest(params) {
   return new Promise((resolve, reject) => {
@@ -177,7 +202,9 @@ function markPrivacyAck() {
   sessionStorage.setItem('privacy_ack_v1', '1');
 }
 
-/** ✅ เรียกตอนเปิดหน้า: เร็ว + เสถียร */
+/***********************
+ * เรียกตอนเปิดหน้า
+ ***********************/
 async function showPrivacyFast() {
   if (!shouldShowPrivacy()) {
     const form = document.getElementById('registration-form');
@@ -281,7 +308,6 @@ function generateUniqueId() {
 
 /***********************
  * QR DataURL Generator
- * วาด QR ใน div ซ่อน → รอ 2 เฟรม → ดึง canvas/img เป็น dataURL
  ***********************/
 function waitFrame() {
   return new Promise(resolve => requestAnimationFrame(() => resolve()));
@@ -476,9 +502,10 @@ function bindInputFilters() {
 
 /***********************
  * SweetAlert QR — Mobile First
+ * ให้ข้อมูลพอดีกับหน้าจอมือถือ
  ***********************/
-function buildQrPopupHtmlV3({
-  qrDataUrl, autoId, dc, dcName, fullName, gender, companyResolved, phone, timestampClient
+function buildQrPopupHtmlV4({
+  qrDataUrl, autoId, dc, dcName, fullName, timestampClient
 }) {
   return `
 <style>
@@ -494,27 +521,27 @@ function buildQrPopupHtmlV3({
 
   .mqr-card{
     width:100%;
-    max-width:420px;
+    max-width:390px;
     margin:0 auto;
     background:#ffffff;
-    border-radius:24px;
+    border-radius:22px;
     overflow:hidden;
-    box-shadow:0 16px 50px rgba(15,23,42,.16);
     border:1px solid rgba(15,23,42,.08);
+    box-shadow:0 12px 36px rgba(15,23,42,.14);
   }
 
   .mqr-head{
-    padding:18px 18px 10px;
+    padding:14px 14px 8px;
     text-align:center;
     background:linear-gradient(180deg,#ffffff 0%, #f8fafc 100%);
   }
 
   .mqr-badge{
     display:inline-block;
-    margin-bottom:10px;
-    padding:6px 12px;
+    margin-bottom:8px;
+    padding:5px 10px;
     border-radius:999px;
-    font-size:11px;
+    font-size:10px;
     font-weight:800;
     color:#5b21b6;
     background:#f3e8ff;
@@ -522,39 +549,39 @@ function buildQrPopupHtmlV3({
 
   .mqr-title{
     margin:0;
-    font-size:22px;
+    font-size:20px;
     line-height:1.2;
     font-weight:900;
     color:#111827;
   }
 
   .mqr-sub{
-    margin:8px 0 0;
-    font-size:13px;
-    line-height:1.5;
+    margin:6px 0 0;
+    font-size:12px;
+    line-height:1.45;
     color:#64748b;
   }
 
   .mqr-body{
-    padding:14px 18px 18px;
+    padding:10px 14px 14px;
   }
 
   .mqr-qr-wrap{
     background:#f8fafc;
     border:1px solid #e2e8f0;
-    border-radius:22px;
-    padding:16px;
+    border-radius:18px;
+    padding:12px;
     text-align:center;
   }
 
   .mqr-qr-box{
-    width:min(78vw, 300px);
+    width:min(70vw, 250px);
     margin:0 auto;
     background:#fff;
-    border-radius:20px;
-    padding:14px;
+    border-radius:16px;
+    padding:10px;
     border:1px solid #e5e7eb;
-    box-shadow:0 8px 24px rgba(15,23,42,.06);
+    box-shadow:0 6px 18px rgba(15,23,42,.06);
   }
 
   .mqr-qr-box img{
@@ -566,80 +593,80 @@ function buildQrPopupHtmlV3({
   }
 
   .mqr-id{
-    margin-top:14px;
-    padding:12px 14px;
-    border-radius:16px;
+    margin-top:10px;
+    padding:10px 12px;
+    border-radius:14px;
     background:#ffffff;
     border:1px dashed #cbd5e1;
   }
 
   .mqr-id-label{
-    font-size:12px;
+    font-size:11px;
     color:#64748b;
-    margin-bottom:4px;
+    margin-bottom:3px;
     font-weight:700;
   }
 
   .mqr-id-code{
-    font-size:18px;
-    line-height:1.25;
+    font-size:16px;
+    line-height:1.2;
     font-weight:900;
     color:#111827;
     word-break:break-word;
-    letter-spacing:.3px;
+    letter-spacing:.2px;
   }
 
   .mqr-note{
-    margin-top:12px;
+    margin-top:10px;
     text-align:center;
-    font-size:13px;
-    line-height:1.5;
+    font-size:12px;
+    line-height:1.45;
     color:#475569;
   }
 
   .mqr-mini{
-    margin-top:14px;
+    margin-top:10px;
     display:grid;
-    gap:8px;
+    gap:6px;
   }
 
   .mqr-row{
     display:flex;
     gap:8px;
     align-items:flex-start;
-    padding:10px 12px;
-    border-radius:14px;
+    padding:9px 10px;
+    border-radius:12px;
     background:#f8fafc;
     border:1px solid #e2e8f0;
   }
 
   .mqr-k{
-    min-width:70px;
-    font-size:12px;
+    min-width:52px;
+    font-size:11px;
     font-weight:800;
     color:#475569;
   }
 
   .mqr-v{
     flex:1;
-    font-size:13px;
-    line-height:1.45;
+    font-size:12px;
+    line-height:1.4;
     color:#0f172a;
     word-break:break-word;
   }
 
   .mqr-actions{
-    margin-top:16px;
+    margin-top:12px;
     display:grid;
-    gap:10px;
+    gap:8px;
   }
 
   .mqr-btn{
     width:100%;
-    min-height:48px;
+    min-height:46px;
     border:none;
-    border-radius:16px;
-    font-size:15px;
+    border-radius:14px;
+    font-size:14px;
     font-weight:900;
     cursor:pointer;
   }
@@ -647,24 +674,12 @@ function buildQrPopupHtmlV3({
   .mqr-btn-primary{
     background:linear-gradient(135deg,#7c3aed,#5b21b6);
     color:#fff;
-    box-shadow:0 10px 24px rgba(91,33,182,.25);
-  }
-
-  .mqr-btn-secondary{
-    background:#ffffff;
-    color:#111827;
-    border:1px solid #d1d5db;
-  }
-
-  .mqr-btn-ghost{
-    background:#f8fafc;
-    color:#334155;
-    border:1px solid #e2e8f0;
+    box-shadow:0 10px 22px rgba(91,33,182,.22);
   }
 
   .swal2-popup{
     padding:0 !important;
-    border-radius:26px !important;
+    border-radius:24px !important;
     overflow:hidden !important;
   }
 
@@ -675,53 +690,50 @@ function buildQrPopupHtmlV3({
 
   .swal2-close{
     color:#64748b !important;
-    font-size:28px !important;
+    font-size:26px !important;
   }
 
   @media (max-width:480px){
     .mqr-card{
       max-width:100%;
-      border-radius:22px;
-    }
-
-    .mqr-head{
-      padding:16px 14px 10px;
+      border-radius:20px;
     }
 
     .mqr-title{
-      font-size:20px;
+      font-size:18px;
     }
 
     .mqr-sub{
-      font-size:12px;
-    }
-
-    .mqr-body{
-      padding:12px 14px 16px;
+      font-size:11.5px;
     }
 
     .mqr-qr-box{
-      width:min(82vw, 280px);
-      padding:12px;
-      border-radius:18px;
+      width:min(68vw, 220px);
+      padding:9px;
+      border-radius:14px;
     }
 
     .mqr-id-code{
-      font-size:16px;
+      font-size:15px;
     }
 
     .mqr-k{
-      min-width:62px;
+      min-width:48px;
     }
 
     .mqr-v{
-      font-size:12.5px;
+      font-size:11.5px;
+    }
+
+    .mqr-btn{
+      min-height:44px;
+      font-size:13.5px;
     }
   }
 </style>
 
 <div id="mqr">
-  <div class="mqr-card">
+  <div class="mqr-card" id="qrCardCapture">
     <div class="mqr-head">
       <div class="mqr-badge">VISITOR PASS</div>
       <h2 class="mqr-title">QR สำหรับสแกนออก</h2>
@@ -736,11 +748,11 @@ function buildQrPopupHtmlV3({
 
         <div class="mqr-id">
           <div class="mqr-id-label">รหัสลงทะเบียน</div>
-          <div class="mqr-id-code" id="idCode">${escapeHtml(autoId)}</div>
+          <div class="mqr-id-code">${escapeHtml(autoId)}</div>
         </div>
 
         <div class="mqr-note">
-          แนะนำให้บันทึกภาพหน้าจอนี้ไว้<br>
+          แนะนำให้ดาวน์โหลดหรือบันทึกภาพนี้ไว้<br>
           เพื่อความสะดวกในการสแกนตอนออก
         </div>
       </div>
@@ -761,9 +773,7 @@ function buildQrPopupHtmlV3({
       </div>
 
       <div class="mqr-actions">
-        <button type="button" class="mqr-btn mqr-btn-primary" id="download-btn">ดาวน์โหลด QR</button>
-        <button type="button" class="mqr-btn mqr-btn-secondary" id="copy-id">คัดลอกรหัส</button>
-        <button type="button" class="mqr-btn mqr-btn-ghost" id="close-btn">ปิด</button>
+        <button type="button" class="mqr-btn mqr-btn-primary" id="download-card-btn">ดาวน์โหลดบัตร QR</button>
       </div>
     </div>
   </div>
@@ -847,12 +857,18 @@ function bindSubmit() {
         }
       });
 
-      // บันทึกข้อมูลให้สำเร็จก่อน
       await api('saveData', payload);
 
-      // แล้วค่อยสร้าง QR
       const qrDataUrl = await makeQrDataUrl(autoId);
-      const html = buildQrPopupHtmlV3({ ...payload, qrDataUrl });
+      const html = buildQrPopupHtmlV4({
+        qrDataUrl,
+        autoId,
+        dc,
+        dcName,
+        fullName,
+        timestampClient
+      });
+
       const Toast = createToast();
 
       Swal.fire({
@@ -861,31 +877,26 @@ function bindSubmit() {
         showConfirmButton: false,
         showCloseButton: true,
         allowOutsideClick: true,
-        width: 'min(94vw, 430px)',
+        width: 'min(92vw, 410px)',
         padding: '0',
         backdrop: true,
         didOpen: () => {
-          document.getElementById('copy-id')?.addEventListener('click', async () => {
+          document.getElementById('download-card-btn')?.addEventListener('click', async () => {
             try {
-              await navigator.clipboard.writeText(autoId);
+              const card = document.getElementById('qrCardCapture');
+              const filename = safeFileName(`${CFG.DOWNLOAD_PREFIX}_${autoId}_CARD.png`);
+              await downloadElementAsPng(card, filename);
+
               Toast.fire({
                 icon: 'success',
-                title: 'คัดลอกแล้ว'
+                title: 'ดาวน์โหลดแล้ว'
               });
-            } catch {
+            } catch (err) {
               Toast.fire({
-                icon: 'info',
-                title: 'คัดลอกไม่สำเร็จ'
+                icon: 'error',
+                title: 'ดาวน์โหลดไม่สำเร็จ'
               });
             }
-          });
-
-          document.getElementById('download-btn')?.addEventListener('click', () => {
-            downloadDataUrl(qrDataUrl, `${CFG.DOWNLOAD_PREFIX}_${autoId}_QR.png`);
-          });
-
-          document.getElementById('close-btn')?.addEventListener('click', () => {
-            Swal.close();
           });
         }
       }).then(() => {
@@ -895,7 +906,6 @@ function bindSubmit() {
         const form = document.getElementById('registration-form');
         if (form) form.style.display = 'none';
 
-        // ตามความต้องการ: หลังปิด QR ให้เด้ง privacy ซ้ำทุกครั้ง
         showPrivacyMessage();
       });
 
@@ -918,11 +928,8 @@ function bindSubmit() {
 document.addEventListener('DOMContentLoaded', () => {
   bindInputFilters();
   bindSubmit();
-
-  // privacy โผล่ก่อนทันที
   showPrivacyFast();
 
-  // โหลดข้อมูลแบบขนาน
   (async () => {
     try {
       await Promise.allSettled([
@@ -930,7 +937,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loadCompanyOptions()
       ]);
     } catch (_) {
-      // ปล่อยผ่านเพื่อไม่ให้ UI พัง
+      // ปล่อยผ่าน เพื่อไม่ให้ UI พัง
     }
   })();
 });
