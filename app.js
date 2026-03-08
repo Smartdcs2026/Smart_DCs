@@ -1,11 +1,16 @@
 /*************************************************************
- * app.js — VISITOR DC-SPLIT (GitHub Pages) — FULL PACKAGE (FIX QR)
+ * app.js — VISITOR DC-SPLIT (GitHub Pages) — FULL PACKAGE
+ * -----------------------------------------------------------
  * ✅ JSONP เรียก Google Apps Script Web App (ไม่ติด CORS)
- * ✅ SweetAlert QR ใหม่: QR แสดงชัวร์ / ไม่บิด / โหลด PNG คม
+ * ✅ Mobile-first SweetAlert QR
+ * ✅ บันทึกข้อมูลสำเร็จก่อน แล้วค่อยแสดง QR
+ * ✅ หลังปิด QR ให้เด้ง privacy ซ้ำทุกครั้ง
  *
  * Requires in index.html:
- * - jQuery, SweetAlert2, qrcodejs
- ************************************************************/
+ * - jQuery
+ * - SweetAlert2
+ * - qrcodejs
+ *************************************************************/
 
 /***********************
  * GitHub Frontend Config
@@ -15,19 +20,21 @@ const CFG = {
   SECRET: 'CHANGE_ME_SUPER_SECRET_906',
   ORIGIN: window.location.origin,
   JSONP_TIMEOUT_MS: 15000,
-    // ✅ ถ้า true: 1 session (จนปิดแท็บ) จะขึ้นครั้งเดียว
+
+  // ถ้า true = 1 session ขึ้น privacy ครั้งเดียว
+  // แต่ตามความต้องการล่าสุดของคุณ "หลังปิด QR ควรเด้ง privacy ซ้ำทุกครั้ง"
+  // ดังนั้นค่านี้ควรเป็น false
   PRIVACY_ONCE_PER_SESSION: false,
 
-  // ✅ preload รูปก่อนเปิด popup (ช่วยเร็ว/นิ่ง)
+  // preload รูปก่อนเปิด popup
   PRIVACY_PRELOAD_TIMEOUT_MS: 1200,
-
 
   DOWNLOAD_PREFIX: 'visitor',
   PRIVACY_IMG_URL: 'https://lh5.googleusercontent.com/d/1yR7QQHgqPNOhOOVKl7jGK_yrMf7UOYxn',
 
   COMPANY_FALLBACK: [
-    "CPAXTRA","Smart DC","Makro","CPF","ALL Now","Linfox",
-    "บุคคลภายนอก","หน่วยงานราชการ","คนลงสินค้า","อื่นๆ"
+    "CPAXTRA", "Smart DC", "Makro", "CPF", "ALL Now", "Linfox",
+    "บุคคลภายนอก", "หน่วยงานราชการ", "คนลงสินค้า", "อื่นๆ"
   ],
 
   AUTO_ID_PREFIX: 'DCs01'
@@ -38,8 +45,10 @@ const CFG = {
  ***********************/
 function escapeHtml(s) {
   return String(s ?? '')
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;").replace(/"/g, "&quot;")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 }
 
@@ -50,6 +59,16 @@ function downloadDataUrl(dataUrl, filename) {
   document.body.appendChild(a);
   a.click();
   a.remove();
+}
+
+function createToast() {
+  return Swal.mixin({
+    toast: true,
+    position: 'top',
+    showConfirmButton: false,
+    timer: 1200,
+    timerProgressBar: true
+  });
 }
 
 /***********************
@@ -79,7 +98,11 @@ function jsonpRequest(params) {
 
     function cleanup() {
       clearTimeout(timer);
-      try { delete window[cb]; } catch (_) { window[cb] = undefined; }
+      try {
+        delete window[cb];
+      } catch (_) {
+        window[cb] = undefined;
+      }
       if (script && script.parentNode) script.parentNode.removeChild(script);
     }
 
@@ -116,6 +139,7 @@ function api(action, payload = null) {
 function preloadImage(url, timeoutMs = 1200) {
   return new Promise((resolve) => {
     if (!url) return resolve(false);
+
     const img = new Image();
     let done = false;
 
@@ -131,6 +155,7 @@ function preloadImage(url, timeoutMs = 1200) {
       clearTimeout(t);
       resolve(true);
     };
+
     img.onerror = () => {
       if (done) return;
       done = true;
@@ -152,23 +177,18 @@ function markPrivacyAck() {
   sessionStorage.setItem('privacy_ack_v1', '1');
 }
 
-/** ✅ เรียกตัวนี้ตอนเปิดหน้า: เร็ว + เสถียร */
+/** ✅ เรียกตอนเปิดหน้า: เร็ว + เสถียร */
 async function showPrivacyFast() {
   if (!shouldShowPrivacy()) {
-    // ถ้าไม่ต้องโชว์แล้ว ให้แสดงฟอร์มทันที
     const form = document.getElementById('registration-form');
     if (form) form.style.display = 'block';
     return;
   }
 
-  // ซ่อนฟอร์มทันทีเพื่อ UX
   const form = document.getElementById('registration-form');
   if (form) form.style.display = 'none';
 
-  // preload รูปแบบ “ไม่บล็อค” นานเกินไป
   await preloadImage(CFG.PRIVACY_IMG_URL, CFG.PRIVACY_PRELOAD_TIMEOUT_MS);
-
-  // เปิด popup
   showPrivacyMessage();
 }
 
@@ -187,9 +207,9 @@ function showPrivacyMessage() {
       </div>
 
       <ol style="margin:0 12px 12px;padding-left:18px;color:#1f2937;font-size:14px;line-height:1.55">
-        <li>ให้ท่านศึกษากฏระเบียบความปลอดภัยการเข้าพื้นที่คลังสินค้าอย่างละเอียด</li>
+        <li>ให้ท่านศึกษากฎระเบียบความปลอดภัยการเข้าพื้นที่คลังสินค้าอย่างละเอียด</li>
         <li>ข้าฯ ยินยอมเปิดเผยข้อมูลส่วนบุคคล</li>
-        <li>ข้าฯจะยึดถือปฏิบัติกฏระเบียบความปลอดภัยอย่างเคร่งครัด</li>
+        <li>ข้าฯ จะยึดถือปฏิบัติกฎระเบียบความปลอดภัยอย่างเคร่งครัด</li>
       </ol>
 
       <label style="display:flex;justify-content:center;align-items:center;gap:10px;padding:12px;border:1px solid #e5e7eb;border-radius:12px;background:#fff;cursor:pointer;">
@@ -214,7 +234,6 @@ function showPrivacyMessage() {
     allowEscapeKey: false,
     allowEnterKey: false,
     didOpen: () => {
-      // ✅ กัน listener ซ้อน (ถ้า popup ถูกเรียกซ้ำ)
       const r = document.getElementById('ackRadio');
       if (!r) return;
 
@@ -222,7 +241,7 @@ function showPrivacyMessage() {
       r.addEventListener('change', function () {
         if (this.checked) {
           acknowledged = true;
-          markPrivacyAck();   // ✅ จำไว้ใน session (ถ้าเปิด)
+          markPrivacyAck();
           Swal.close();
         }
       }, { once: true });
@@ -240,32 +259,38 @@ function showPrivacyMessage() {
   });
 }
 
-
 /***********************
  * Generate Unique ID
  ***********************/
 const usedIds = new Set();
+
 function generateUniqueId() {
   const chars = "0123456789";
   let id = "";
+
   do {
     id = CFG.AUTO_ID_PREFIX;
-    for (let i = 0; i < 9; i++) id += chars.charAt(Math.floor(Math.random() * chars.length));
+    for (let i = 0; i < 9; i++) {
+      id += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
   } while (usedIds.has(id));
+
   usedIds.add(id);
   return id;
 }
 
 /***********************
- * ✅ QR DataURL Generator (Fix: always visible)
- * วาด QR ใน div ซ่อน → รอ 1 เฟรม → ดึง canvas/img เป็น dataURL
+ * QR DataURL Generator
+ * วาด QR ใน div ซ่อน → รอ 2 เฟรม → ดึง canvas/img เป็น dataURL
  ***********************/
 function waitFrame() {
-  return new Promise(r => requestAnimationFrame(() => r()));
+  return new Promise(resolve => requestAnimationFrame(() => resolve()));
 }
 
 async function makeQrDataUrl(text) {
-  if (typeof QRCode !== 'function') throw new Error('ไม่พบไลบรารี qrcodejs (QRCode)');
+  if (typeof QRCode !== 'function') {
+    throw new Error('ไม่พบไลบรารี qrcodejs (QRCode)');
+  }
 
   const host = document.createElement('div');
   host.style.position = 'fixed';
@@ -276,7 +301,6 @@ async function makeQrDataUrl(text) {
   document.body.appendChild(host);
 
   try {
-    // บางเวอร์ชันวาดไม่ทัน ต้องรอ 1-2 เฟรม
     new QRCode(host, {
       text: String(text),
       width: 512,
@@ -295,7 +319,9 @@ async function makeQrDataUrl(text) {
 
     throw new Error('สร้าง QR ไม่สำเร็จ (ไม่พบ canvas/img)');
   } finally {
-    try { host.remove(); } catch (_) {}
+    try {
+      host.remove();
+    } catch (_) {}
   }
 }
 
@@ -308,6 +334,7 @@ async function loadDCOptions() {
   if (!sel) throw new Error('ไม่พบ element #dcSelect');
 
   sel.innerHTML = `<option value="">-- เลือก DC --</option>`;
+
   (list || []).forEach(item => {
     const opt = document.createElement('option');
     opt.value = item.dc;
@@ -316,7 +343,9 @@ async function loadDCOptions() {
     sel.appendChild(opt);
   });
 
-  $('#dcSelect').off('change').on('change', function () { $(this).removeClass('invalid'); });
+  $('#dcSelect').off('change').on('change', function () {
+    $(this).removeClass('invalid');
+  });
 }
 
 /***********************
@@ -324,10 +353,15 @@ async function loadDCOptions() {
  ***********************/
 async function loadCompanyOptions() {
   let options = [];
-  try { options = await api('getRadioOptions'); } catch (_) { options = []; }
+  try {
+    options = await api('getRadioOptions');
+  } catch (_) {
+    options = [];
+  }
 
   const container = document.getElementById('companyGroup');
   if (!container) throw new Error('ไม่พบ element #companyGroup');
+
   container.innerHTML = "";
 
   const list = (options && options.length) ? options : CFG.COMPANY_FALLBACK;
@@ -346,6 +380,7 @@ async function loadCompanyOptions() {
 
   $('input[name="company"]').off('change').on('change', function () {
     $('#companyGroup').removeClass('invalid');
+
     if (this.value === 'อื่นๆ') {
       $('#companyOtherWrap').slideDown(120);
       $('#companyOther').attr('required', true).focus();
@@ -359,30 +394,59 @@ async function loadCompanyOptions() {
 /***********************
  * Validation + Filters
  ***********************/
-function markInvalid(sel) { $(sel).addClass('invalid'); }
-function clearInvalid() { $('.invalid').removeClass('invalid'); }
+function markInvalid(sel) {
+  $(sel).addClass('invalid');
+}
+
+function clearInvalid() {
+  $('.invalid').removeClass('invalid');
+}
 
 function validateForm() {
   const errors = [];
   let first = null;
 
   const dc = $('#dcSelect').val();
-  if (!dc) { errors.push('กรุณาเลือก "DC"'); markInvalid('#dcSelect'); first = first || '#dcSelect'; }
+  if (!dc) {
+    errors.push('กรุณาเลือก "DC"');
+    markInvalid('#dcSelect');
+    first = first || '#dcSelect';
+  }
 
   const fullName = $('#fullName').val().trim();
-  if (!fullName) { errors.push('กรุณากรอก "ชื่อ-นามสกุล"'); markInvalid('#fullName'); first = first || '#fullName'; }
+  if (!fullName) {
+    errors.push('กรุณากรอก "ชื่อ-นามสกุล"');
+    markInvalid('#fullName');
+    first = first || '#fullName';
+  }
 
   const gender = $('input[name="gender"]:checked').val();
-  if (!gender) { errors.push('กรุณาเลือก "เพศ"'); markInvalid('#genderGroup'); first = first || '#genderGroup'; }
+  if (!gender) {
+    errors.push('กรุณาเลือก "เพศ"');
+    markInvalid('#genderGroup');
+    first = first || '#genderGroup';
+  }
 
   const phone = $('#phone').val().trim();
-  if (!/^0\d{9}$/.test(phone)) { errors.push('หมายเลขโทรต้องขึ้นต้นด้วย 0 และมี 10 หลัก'); markInvalid('#phone'); first = first || '#phone'; }
+  if (!/^0\d{9}$/.test(phone)) {
+    errors.push('หมายเลขโทรต้องขึ้นต้นด้วย 0 และมี 10 หลัก');
+    markInvalid('#phone');
+    first = first || '#phone';
+  }
 
   const company = $('input[name="company"]:checked').val();
-  if (!company) { errors.push('กรุณาเลือก "บริษัท"'); markInvalid('#companyGroup'); first = first || '#companyGroup'; }
+  if (!company) {
+    errors.push('กรุณาเลือก "บริษัท"');
+    markInvalid('#companyGroup');
+    first = first || '#companyGroup';
+  }
 
   const companyOther = $('#companyOther').val().trim();
-  if (company === 'อื่นๆ' && !companyOther) { errors.push('คุณเลือก "อื่นๆ" กรุณากรอก "ชื่อบริษัท"'); markInvalid('#companyOther'); first = first || '#companyOther'; }
+  if (company === 'อื่นๆ' && !companyOther) {
+    errors.push('คุณเลือก "อื่นๆ" กรุณากรอก "ชื่อบริษัท"');
+    markInvalid('#companyOther');
+    first = first || '#companyOther';
+  }
 
   return { ok: errors.length === 0, errors, firstInvalid: first };
 }
@@ -395,18 +459,23 @@ function bindInputFilters() {
   });
 
   $('#phone').off('input').on('input', function () {
-    let digits = this.value.replace(/\D/g, '').slice(0, 10);
+    const digits = this.value.replace(/\D/g, '').slice(0, 10);
     this.value = digits;
     this.setCustomValidity(/^0\d{9}$/.test(digits) ? '' : 'ต้องขึ้นต้นด้วย 0 และเป็นตัวเลข 10 หลัก');
     $(this).removeClass('invalid');
   });
 
-  $('input[name="gender"]').off('change').on('change', function () { $('#genderGroup').removeClass('invalid'); });
-  $('#companyOther').off('input').on('input', function () { $(this).removeClass('invalid'); });
+  $('input[name="gender"]').off('change').on('change', function () {
+    $('#genderGroup').removeClass('invalid');
+  });
+
+  $('#companyOther').off('input').on('input', function () {
+    $(this).removeClass('invalid');
+  });
 }
 
 /***********************
- * ✅ SweetAlert QR — HTML (img only: no distortion)
+ * SweetAlert QR — Mobile First
  ***********************/
 function buildQrPopupHtmlV3({
   qrDataUrl, autoId, dc, dcName, fullName, gender, companyResolved, phone, timestampClient
@@ -479,7 +548,7 @@ function buildQrPopupHtmlV3({
   }
 
   .mqr-qr-box{
-    width:min(72vw, 280px);
+    width:min(78vw, 300px);
     margin:0 auto;
     background:#fff;
     border-radius:20px;
@@ -632,7 +701,7 @@ function buildQrPopupHtmlV3({
     }
 
     .mqr-qr-box{
-      width:min(78vw, 260px);
+      width:min(82vw, 280px);
       padding:12px;
       border-radius:18px;
     }
@@ -713,14 +782,26 @@ function bindSubmit() {
     if (isSubmitting) return;
 
     clearInvalid();
+
     const v = validateForm();
     if (!v.ok) {
       const list = '<ul style="text-align:left;margin:0 auto;max-width:420px;">' +
         v.errors.map(x => `<li>${escapeHtml(x)}</li>`).join('') + '</ul>';
-      Swal.fire({ icon: 'warning', title: 'ข้อมูลไม่ครบถ้วน', html: list });
+
+      Swal.fire({
+        icon: 'warning',
+        title: 'ข้อมูลไม่ครบถ้วน',
+        html: list
+      });
+
       if (v.firstInvalid) {
-        document.querySelector(v.firstInvalid)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        setTimeout(() => document.querySelector(v.firstInvalid)?.focus(), 250);
+        document.querySelector(v.firstInvalid)?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
+        });
+        setTimeout(() => {
+          document.querySelector(v.firstInvalid)?.focus();
+        }, 250);
       }
       return;
     }
@@ -743,61 +824,80 @@ function bindSubmit() {
       const companyResolved = (company === 'อื่นๆ') ? companyOther : company;
 
       const payload = {
-        autoId, dc, dcName,
-        fullName, gender, phone,
-        company, companyOther, companyResolved,
+        autoId,
+        dc,
+        dcName,
+        fullName,
+        gender,
+        phone,
+        company,
+        companyOther,
+        companyResolved,
         timestampClient
       };
 
-      // ✅ สร้าง QR เป็น dataURL (Fix: แสดงชัวร์)
-      const qrDataUrl = await makeQrDataUrl(autoId);
+      Swal.fire({
+        title: 'กำลังบันทึกข้อมูล',
+        text: 'กรุณารอสักครู่...',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
 
-      // ✅ popup html
-      const html = buildQrPopupHtmlV3({ ...payload, qrDataUrl });
-
-     Swal.fire({
-  title: '',
-  html,
-  showConfirmButton: false,
-  showCloseButton: true,
-  allowOutsideClick: true,
-  width: 'min(94vw, 430px)',
-  padding: '0',
-  backdrop: true,
-  didOpen: () => {
-    document.getElementById('copy-id')?.addEventListener('click', async () => {
-      try {
-        await navigator.clipboard.writeText(autoId);
-        Swal.fire({
-          icon:'success',
-          title:'คัดลอกแล้ว',
-          timer:900,
-          showConfirmButton:false
-        });
-      } catch {
-        Swal.fire({
-          icon:'info',
-          title:'คัดลอกไม่สำเร็จ',
-          text:'ลองคัดลอกจากรหัสที่แสดง'
-        });
-      }
-    });
-
-    document.getElementById('download-btn')?.addEventListener('click', () => {
-      downloadDataUrl(qrDataUrl, `${CFG.DOWNLOAD_PREFIX}_${autoId}_QR.png`);
-    });
-
-    document.getElementById('close-btn')?.addEventListener('click', () => Swal.close());
-  }
-}).then(() => {
-  $('#registration-form')[0].reset();
-  $('#companyOtherWrap').hide();
-  document.getElementById('registration-form').style.display = 'none';
-  showPrivacyMessage();
-});
-
-      // ✅ save to backend
+      // บันทึกข้อมูลให้สำเร็จก่อน
       await api('saveData', payload);
+
+      // แล้วค่อยสร้าง QR
+      const qrDataUrl = await makeQrDataUrl(autoId);
+      const html = buildQrPopupHtmlV3({ ...payload, qrDataUrl });
+      const Toast = createToast();
+
+      Swal.fire({
+        title: '',
+        html,
+        showConfirmButton: false,
+        showCloseButton: true,
+        allowOutsideClick: true,
+        width: 'min(94vw, 430px)',
+        padding: '0',
+        backdrop: true,
+        didOpen: () => {
+          document.getElementById('copy-id')?.addEventListener('click', async () => {
+            try {
+              await navigator.clipboard.writeText(autoId);
+              Toast.fire({
+                icon: 'success',
+                title: 'คัดลอกแล้ว'
+              });
+            } catch {
+              Toast.fire({
+                icon: 'info',
+                title: 'คัดลอกไม่สำเร็จ'
+              });
+            }
+          });
+
+          document.getElementById('download-btn')?.addEventListener('click', () => {
+            downloadDataUrl(qrDataUrl, `${CFG.DOWNLOAD_PREFIX}_${autoId}_QR.png`);
+          });
+
+          document.getElementById('close-btn')?.addEventListener('click', () => {
+            Swal.close();
+          });
+        }
+      }).then(() => {
+        $('#registration-form')[0].reset();
+        $('#companyOtherWrap').hide();
+
+        const form = document.getElementById('registration-form');
+        if (form) form.style.display = 'none';
+
+        // ตามความต้องการ: หลังปิด QR ให้เด้ง privacy ซ้ำทุกครั้ง
+        showPrivacyMessage();
+      });
 
     } catch (err) {
       Swal.fire({
@@ -816,26 +916,21 @@ function bindSubmit() {
  * Init
  ***********************/
 document.addEventListener('DOMContentLoaded', () => {
-  // bind พื้นฐานก่อน (ไม่พึ่ง network)
   bindInputFilters();
   bindSubmit();
 
-  // ✅ Privacy โผล่ก่อนทันที (ไม่รอ GAS)
+  // privacy โผล่ก่อนทันที
   showPrivacyFast();
 
-  // ✅ โหลดข้อมูลแบบขนาน (ไม่บล็อค UI)
+  // โหลดข้อมูลแบบขนาน
   (async () => {
     try {
       await Promise.allSettled([
         loadDCOptions(),
         loadCompanyOptions()
       ]);
-      // ไม่ต้องทำอะไรเพิ่ม — ถ้าโหลดไม่ได้ company ก็มี fallback อยู่แล้ว
     } catch (_) {
-      // เงียบได้ (เพราะเราไม่อยากให้ UI พังตอนเปิดหน้า)
+      // ปล่อยผ่านเพื่อไม่ให้ UI พัง
     }
   })();
 });
-
-
-
