@@ -25,6 +25,34 @@ body{
   margin:16px auto 0;
   padding:18px 18px 12px;
 }
+.appLogoWrap{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  margin-bottom:10px;
+  min-height:36px;
+}
+
+.appLogo{
+  display:block;
+  max-width:120px;
+  max-height:36px;
+  width:auto;
+  height:auto;
+  object-fit:contain;
+}
+
+@media (max-width:480px){
+  .appLogoWrap{
+    margin-bottom:8px;
+    min-height:32px;
+  }
+
+  .appLogo{
+    max-width:108px;
+    max-height:32px;
+  }
+}
 .appHeader h1{
   margin:0;
   font-size:22px;
@@ -185,3 +213,4 @@ input[type="text"]:focus, select:focus{
   .card{ padding:14px; }
   .appHeader h1{ font-size:20px; }
 }
+
