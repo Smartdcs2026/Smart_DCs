@@ -966,7 +966,7 @@
  * GitHub Frontend Config
  ***********************/
 const CFG = {
-  GAS_URL: 'https://script.google.com/macros/s/AKfycbzZXPQ4wEbC7wscYHZwougAbvo4ppKuSvwlR2teWHlncJ7fa2pG4YrhKXwpEp9ItRQh/exec',
+  GAS_URL: 'https://script.google.com/macros/s/AKfycbzhFSj-_uf-s4fkGXtAzaC9VWpbTwI5RWmMwRt_6-bLLGLSbvHjfV0UntwaB0W9Uhtpyg/exec',
   SECRET: 'CHANGE_ME_SUPER_SECRET_906',
   ORIGIN: window.location.origin,
   JSONP_TIMEOUT_MS: 15000,
@@ -1931,5 +1931,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   })();
 });
+
 
 
